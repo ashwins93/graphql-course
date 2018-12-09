@@ -5,19 +5,19 @@ import { arch } from 'os'
 // Demo user data
 const users = [
   {
-    id: 1,
+    id: '1',
     name: 'Ash',
     email: 'ash@ash.ash',
     age: 25,
   },
   {
-    id: 2,
+    id: '2',
     name: 'Trevor',
     email: 'trevor@trevor.trevor',
     age: 37,
   },
   {
-    id: 3,
+    id: '3',
     name: 'Lauren',
     email: 'lauren@lauren.lauren',
     age: 24,
@@ -27,54 +27,54 @@ const users = [
 // Demo post data
 const posts = [
   {
-    id: 1,
+    id: '1',
     title: 'GraphQL is cool',
     body: 'Breakthrough in technology. GraphQL is the coolest.',
     published: false,
-    author: 1,
+    author: '1',
   },
   {
-    id: 2,
+    id: '2',
     title: 'Is REST dead?',
     body: 'The number  of services using REST API drops sharply.',
-    published: false,
-    author: 1,
+    published: true,
+    author: '1',
   },
   {
-    id: 1,
+    id: '3',
     title: 'React still popular',
     body:
       'After 5 years tech giant open sourced React.js a popular view library for building web applications, it remains the number one choice for developers.',
     published: false,
-    author: 2,
+    author: '2',
   },
 ]
 
 // Demo comments data
 const comments = [
   {
-    id: 2141,
+    id: '2141',
     text: 'Lorem ipsum dolor sit amet.',
-    author: 1,
-    post: 1,
+    author: '1',
+    post: '1',
   },
   {
-    id: 2135,
+    id: '2135',
     text: 'Of course you are right. Amazing article.',
-    author: 1,
-    post: 2,
+    author: '1',
+    post: '2',
   },
   {
-    id: 1241,
+    id: '1241',
     text: "I can't wait for the GraphQL release.",
-    author: 2,
-    post: 2,
+    author: '2',
+    post: '2',
   },
   {
-    id: 3233,
+    id: '3233',
     text: 'Unbelievable. I totally missed it.',
-    author: 3,
-    post: 2,
+    author: '3',
+    post: '2',
   },
 ]
 
@@ -89,7 +89,28 @@ const typeDefs = `
   }
 
   type Mutation {
-    createUser(name: String!, email: String!, age: Int): User!
+    createUser(data: CreateUserInput!): User!
+    createPost(data: CreatePostInput!): Post!
+    createComment(data: CreateCommentInput!): Comment!
+  }
+
+  input CreateUserInput {
+    name: String!
+    email: String!
+    age: Int
+  }
+
+  input CreatePostInput {
+    title: String!
+    body: String!
+    published: Boolean!
+    author: ID!
+  }
+
+  input CreateCommentInput {
+    text: String!
+    author: ID!
+    post: ID!
   }
 
   type User {
@@ -160,21 +181,55 @@ const resolvers = {
   },
   Mutation: {
     createUser(parent, args, ctx, info) {
-      const emailTaken = users.some(user => user.email === args.email)
+      const emailTaken = users.some(user => user.email === args.data.email)
 
       if (emailTaken) throw new Error('Email taken.')
-      console.log(args)
 
       const newUser = {
         id: uuidv4(),
-        name: args.name,
-        email: args.email,
-        age: args.age,
+        ...args.data,
       }
 
       users.push(newUser)
 
       return newUser
+    },
+    createPost(parent, args, ctx, info) {
+      const userExists = users.some(user => user.id === args.data.author)
+
+      if (!userExists) {
+        throw new Error('User not found.')
+      }
+
+      const newPost = {
+        id: uuidv4(),
+        ...args.data,
+      }
+
+      posts.push(newPost)
+
+      return newPost
+    },
+    createComment(parent, args, ctx, info) {
+      const userExists = users.some(user => user.id === args.data.author)
+
+      if (!userExists) throw new Error('User not found')
+
+      const postExistsAndPublished = posts.some(
+        post => post.id === args.data.post && post.published
+      )
+
+      if (!postExistsAndPublished)
+        throw new Error('Post does not exist or has not been published')
+
+      const newComment = {
+        id: uuidv4(),
+        ...args.data,
+      }
+
+      comments.push(newComment)
+
+      return newComment
     },
   },
 
